@@ -2,91 +2,119 @@ const express = require('express');
 const router = express.Router();
 const Attendance = require('../models/Attendance');
 
-// Mark attendance (Admin only)
+// MARK ATTENDANCE
 router.post('/mark', async (req, res) => {
   try {
-    const { studentName, className, roomNumber, status, mealType } = req.body;
-    
-    const attendance = new Attendance({
+    const {
       studentName,
+      studentId,
       className,
       roomNumber,
       status,
       mealType,
-      date: new Date()
-    });
-    
-    await attendance.save();
-    res.json({ 
-      success: true, 
-      message: 'Attendance marked successfully',
-      data: attendance 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
-    });
-  }
-});
+      date,
+      markedBy
+    } = req.body;
 
-// Get all attendance records
-router.get('/all', async (req, res) => {
-  try {
-    const attendance = await Attendance.find().sort({ date: -1 });
-    res.json({ 
-      success: true, 
-      data: attendance 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
-    });
-  }
-});
-
-// Get attendance by date
-router.get('/date/:date', async (req, res) => {
-  try {
-    const date = new Date(req.params.date);
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
-    
-    const attendance = await Attendance.find({
+    // Prevent duplicate attendance for same meal + date
+    const existing = await Attendance.findOne({
+      studentId,
+      mealType,
       date: {
-        $gte: date,
-        $lt: nextDate
+        $gte: new Date(date).setHours(0, 0, 0, 0),
+        $lt: new Date(date).setHours(23, 59, 59, 999)
       }
     });
-    
-    res.json({ 
-      success: true, 
-      data: attendance 
+
+    if (existing) {
+      existing.status = status;
+      existing.markedBy = markedBy;
+      await existing.save();
+
+      return res.json({
+        success: true,
+        message: 'Attendance updated',
+        data: existing
+      });
+    }
+
+    const attendance = new Attendance({
+      studentName,
+      studentId,
+      className,
+      roomNumber,
+      status,
+      mealType,
+      date,
+      markedBy
+    });
+
+    await attendance.save();
+
+    res.json({
+      success: true,
+      message: 'Attendance marked',
+      data: attendance
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
 
-// Get attendance by student name
-router.get('/student/:name', async (req, res) => {
+// GET ATTENDANCE BY STUDENT + DATE
+router.get('/student/:studentId/date/:date', async (req, res) => {
   try {
-    const attendance = await Attendance.find({ 
-      studentName: new RegExp(req.params.name, 'i') 
-    }).sort({ date: -1 });
-    
-    res.json({ 
-      success: true, 
-      data: attendance 
+    const { studentId, date } = req.params;
+
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const attendance = await Attendance.find({
+      studentId,
+      date: { $gte: start, $lte: end }
+    });
+
+    res.json({
+      success: true,
+      data: attendance
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// GET TODAY'S ATTENDANCE
+router.get('/student/:studentId/today', async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const start = new Date(today);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(today);
+    end.setHours(23, 59, 59, 999);
+
+    const attendance = await Attendance.find({
+      studentId: req.params.studentId,
+      date: { $gte: start, $lte: end }
+    });
+
+    res.json({
+      success: true,
+      data: attendance
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });

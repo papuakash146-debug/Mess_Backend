@@ -1,23 +1,10 @@
 const mongoose = require('mongoose');
 
 const AttendanceSchema = new mongoose.Schema({
-  studentName: {
-    type: String,
-    required: true
-  },
-  className: {
-    type: String,
-    required: true
-  },
-  roomNumber: {
-    type: String,
-    required: true
-  },
-  date: {
-    type: Date,
-    required: true,
-    default: Date.now
-  },
+  studentName: String,
+  studentId: String,
+  className: String,
+  roomNumber: String,
   status: {
     type: String,
     enum: ['Present', 'Absent'],
@@ -27,6 +14,15 @@ const AttendanceSchema = new mongoose.Schema({
     type: String,
     enum: ['Breakfast', 'Lunch', 'Dinner'],
     required: true
+  },
+  markedBy: {
+    type: String,
+    enum: ['admin', 'student'],
+    default: 'admin'
+  },
+  date: {
+    type: Date,
+    default: Date.now
   }
 });
 
