@@ -22,12 +22,14 @@ const Menu = require('./models/Menu');
 const Attendance = require('./models/Attendance');
 const Expense = require('./models/Expense');
 const User = require('./models/User');
+const Student = require('./models/Student');
 
 // Routes
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/students', require('./routes/students'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
